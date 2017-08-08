@@ -1,0 +1,7 @@
+
+tensorflow=1.3.0
+protobuf
+numpy
+six
+pandas
+
