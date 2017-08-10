@@ -2,7 +2,7 @@
 """
 Usage:
   # Create train data:
-  python data_conversion.py --csv_input=data/train_labels.csv  --output_path=train.record
+  python data_conversion.py --csv_input=data/train_labels.csv  --output_path=eval.record
   # Create test data:
   python data_conversion.py --csv_input=data/test_labels.csv  --output_path=test.record
 """
@@ -18,9 +18,11 @@ import sys
 import os
 import PIL.Image
 import io
+import random
 
 
 flags = tf.app.flags
+flags.DEFINE_boolean('eval', False, 'Root directory for the dataset.')
 flags.DEFINE_string('data_dir', '', 'Root directory for the dataset.')
 flags.DEFINE_string('annotations_dir', 'Annotations',
                     '(Relative) path to annotations directory.')
@@ -39,7 +41,10 @@ from object_detection.utils import label_map_util
 def generate_tf_examples(_label_map_dict):
   _input_path = FLAGS.input_path
   df = pd.read_csv(_input_path)
-  _img_names = set(df.Frame.tolist())
+  _img_names = list(set(df.Frame.tolist()))
+  if FLAGS.eval:
+    random.shuffle(_img_names)
+    _img_names = _img_names[:5000]
   for img_name in _img_names:
     print("processing image {}".format(img_name))
     boxes = df[df.Frame.isin([img_name])]
@@ -57,6 +62,8 @@ def generate_tf_examples(_label_map_dict):
     ymaxs = (boxes.ymax / width).tolist()
     classes_text = boxes.Label.str.encode('utf8').tolist()
     classes = [_label_map_dict[_text] for _text in boxes.Label.tolist()]
+    print("xmins {} xmaxs {} ymins {} ymaxs {}".format(boxes.xmin.tolist(), boxes.xmax.tolist(), boxes.ymin.tolist(), boxes.ymax.tolist()))
+    print("normalized xmins {} xmaxs {} ymins {} ymaxs {}".format(xmins, xmaxs, ymins, ymaxs))
 
     tf_example = tf.train.Example(features=tf.train.Features(feature={
         'image/height': dataset_util.int64_feature(height),
